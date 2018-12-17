@@ -16,6 +16,9 @@
 package org.pf4j.spring;
 
 import org.pf4j.PluginManager;
+import org.pf4j.PluginState;
+import org.pf4j.PluginStateEvent;
+import org.pf4j.PluginStateListener;
 import org.pf4j.PluginWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,18 @@ public class ExtensionsInjector {
     public ExtensionsInjector(PluginManager pluginManager, AbstractAutowireCapableBeanFactory beanFactory) {
         this.pluginManager = pluginManager;
         this.beanFactory = beanFactory;
+        
+        this.pluginManager.addPluginStateListener(new PluginStateListener() {
+			
+			@Override
+			public void pluginStateChanged(PluginStateEvent event) {
+				
+				if(event.getPluginState() == PluginState.STARTED) {
+					 registerPlugin(event.getPlugin());
+				}
+			}
+		});
+        
     }
 
     public void injectExtensions() {
@@ -55,19 +70,23 @@ public class ExtensionsInjector {
         // add extensions for each started plugin
         List<PluginWrapper> startedPlugins = pluginManager.getStartedPlugins();
         for (PluginWrapper plugin : startedPlugins) {
-            log.debug("Registering extensions of the plugin '{}' as beans", plugin.getPluginId());
-            extensionClassNames = pluginManager.getExtensionClassNames(plugin.getPluginId());
-            for (String extensionClassName : extensionClassNames) {
-                try {
-                    log.debug("Register extension '{}' as bean", extensionClassName);
-                    Class<?> extensionClass = plugin.getPluginClassLoader().loadClass(extensionClassName);
-                    registerExtension(extensionClass);
-                } catch (ClassNotFoundException e) {
-                    log.error(e.getMessage(), e);
-                }
-            }
+            registerPlugin(plugin);
         }
     }
+
+	private void registerPlugin(PluginWrapper plugin) {
+		log.debug("Registering extensions of the plugin '{}' as beans", plugin.getPluginId());
+		Set<String> extensionClassNames = pluginManager.getExtensionClassNames(plugin.getPluginId());
+		for (String extensionClassName : extensionClassNames) {
+		    try {
+		        log.debug("Register extension '{}' as bean", extensionClassName);
+		        Class<?> extensionClass = plugin.getPluginClassLoader().loadClass(extensionClassName);
+		        registerExtension(extensionClass);
+		    } catch (ClassNotFoundException e) {
+		        log.error(e.getMessage(), e);
+		    }
+		}
+	}
 
     /**
      * Register an extension as bean.

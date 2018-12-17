@@ -15,6 +15,10 @@
  */
 package org.pf4j.spring;
 
+import java.nio.file.Path;
+
+import javax.annotation.PostConstruct;
+
 import org.pf4j.DefaultPluginManager;
 import org.pf4j.ExtensionFactory;
 import org.springframework.beans.BeansException;
@@ -22,15 +26,13 @@ import org.springframework.beans.factory.support.AbstractAutowireCapableBeanFact
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-import javax.annotation.PostConstruct;
-import java.nio.file.Path;
-
 /**
  * @author Decebal Suiu
  */
 public class SpringPluginManager extends DefaultPluginManager implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;
+    private ExtensionsInjector extensionsInjector;
 
     public SpringPluginManager() {
     }
@@ -62,7 +64,7 @@ public class SpringPluginManager extends DefaultPluginManager implements Applica
         //startPlugins();
 
         AbstractAutowireCapableBeanFactory beanFactory = (AbstractAutowireCapableBeanFactory) applicationContext.getAutowireCapableBeanFactory();
-        ExtensionsInjector extensionsInjector = new ExtensionsInjector(this, beanFactory);
+        extensionsInjector = new ExtensionsInjector(this, beanFactory);
         extensionsInjector.injectExtensions();
     }
 
